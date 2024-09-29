@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.0/dist/peerjs.min.js"></script>
+    <style>
+        #video-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        video {
+            width: 600px;
+            height: auto;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Viewer</h1>
+    <div id="video-container"></div>
+    <script>
+        const peer = new Peer(); // Generate a new Peer ID for the viewer
+
+        peer.on('open', id => {
+            console.log(`Viewer ID: ${id}`);
+            // Replace 'streamer' with the ID of the streamer
+            const streamerId = 'streamer'; 
+            const call = peer.call(streamerId, null);
+            call.on('stream', remoteStream => {
+                const videoContainer = document.getElementById('video-container');
+                const remoteVideo = document.createElement('video');
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.play();
+                videoContainer.appendChild(remoteVideo);
+            });
+        });
+    </script>
+</body>
+</html>

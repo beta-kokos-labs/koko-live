@@ -3,47 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Host Livestream with PeerJS</title>
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <title>PeerJS Livestream</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs"></script>
     <style>
         video {
-            width: 600px;
-            margin: 10px;
+            width: 300px;
+            height: 200px;
             border: 1px solid black;
+            margin: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Host Livestream with PeerJS</h1>
-    <video id="localVideo" autoplay muted></video>
-    <button id="startButton">Start Streaming</button>
-    
+    <h1>PeerJS Livestream</h1>
+    <div>
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+    </div>
+    <button id="callBtn">Call</button>
+    <button id="endCallBtn">End Call</button>
+
     <script>
-        const startButton = document.getElementById('startButton');
+        // Create a PeerJS connection using the default PeerJS server
+        const peer = new Peer();
+
         const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        let localStream;
+        let currentCall;
 
-        // Initialize PeerJS
-        const peer = new Peer(); // Connects to PeerJS cloud server
+        // Get access to the user's webcam and microphone
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        }).then(stream => {
+            localStream = stream;
+            localVideo.srcObject = stream;
+        }).catch(err => {
+            console.error('Failed to get local stream', err);
+        });
 
-        // Get media stream
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                localVideo.srcObject = stream;
-
-                // Listen for incoming calls (remote users)
-                peer.on('call', call => {
-                    call.answer(stream); // Answer with our stream
+        // Listen for incoming calls
+        peer.on('call', call => {
+            if (localStream) {
+                call.answer(localStream); // Answer the call with the local stream
+                call.on('stream', remoteStream => {
+                    remoteVideo.srcObject = remoteStream; // Set the remote video stream
                 });
+            }
+        });
 
-                // Start streaming to another peer
-                startButton.addEventListener('click', () => {
-                    const remotePeerId = prompt('Enter the peer ID to connect to:');
-                    const call = peer.call(remotePeerId, stream);
+        // Call a peer
+        document.getElementById('callBtn').onclick = () => {
+            const peerId = prompt('Enter peer ID to call:');
+            if (peerId && localStream) {
+                currentCall = peer.call(peerId, localStream);
+                currentCall.on('stream', remoteStream => {
+                    remoteVideo.srcObject = remoteStream;
                 });
-            })
-            .catch(err => {
-                console.error('Failed to get media:', err);
-            });
+            }
+        };
+
+        // End the call
+        document.getElementById('endCallBtn').onclick = () => {
+            if (currentCall) {
+                currentCall.close();
+                remoteVideo.srcObject = null; // Clear the remote video
+            }
+        };
+
+        // Log Peer ID to console
+        peer.on('open', id => {
+            console.log('My peer ID is: ' + id);
+        });
     </script>
 </body>
 </html>
